@@ -122,7 +122,6 @@ input:focus{
 .delete-btn{
     position:absolute;
     top:18px;
-    right:18px;
     background:linear-gradient(45deg,#ff0844,#ff416c);
     border:none;
     padding:7px 12px;
@@ -156,7 +155,7 @@ input:focus{
     <div class="form-box">
         <input type="text" id="name" placeholder="ชื่อสินค้า">
         <input type="number" id="price" placeholder="ราคา">
-        <button class="add-btn" onclick="addProduct()">เพิ่มสินค้า</button>
+        <button class="add-btn" id="submitBtn" onclick="submitForm()">เพิ่มสินค้า</button>
     </div>
 
     <div class="product-grid" id="productList"></div>
@@ -166,8 +165,9 @@ input:focus{
 <script>
 
 const API_URL="http://localhost/workshop_api/api/products.php";
+let editId = null;
 
-function addProduct(){
+function submitForm(){
 
     const name=document.getElementById("name").value;
     const price=document.getElementById("price").value;
@@ -177,20 +177,49 @@ function addProduct(){
         return;
     }
 
-    fetch(API_URL,{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-            product_name:name,
-            price:price
+    if(editId===null){
+
+        fetch(API_URL,{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                product_name:name,
+                price:price
+            })
         })
-    })
-    .then(res=>res.json())
-    .then(()=>{
-        document.getElementById("name").value="";
-        document.getElementById("price").value="";
-        loadProducts();
-    });
+        .then(res=>res.json())
+        .then(()=>{
+            clearForm();
+            loadProducts();
+        });
+
+    }else{
+
+        fetch(API_URL,{
+            method:"PUT",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                id:editId,
+                product_name:name,
+                price:price
+            })
+        })
+        .then(res=>res.json())
+        .then(()=>{
+            clearForm();
+            loadProducts();
+        });
+    }
+}
+
+function editProduct(product){
+
+    document.getElementById("name").value=product.product_name;
+    document.getElementById("price").value=product.price;
+
+    editId=product.id;
+
+    document.getElementById("submitBtn").innerText="บันทึกการแก้ไข";
 }
 
 function deleteProduct(id){
@@ -206,6 +235,13 @@ function deleteProduct(id){
     .then(()=>{
         loadProducts();
     });
+}
+
+function clearForm(){
+    document.getElementById("name").value="";
+    document.getElementById("price").value="";
+    editId=null;
+    document.getElementById("submitBtn").innerText="เพิ่มสินค้า";
 }
 
 function loadProducts(){
@@ -228,7 +264,9 @@ function loadProducts(){
             card.className="card";
 
             card.innerHTML=`
-                <button class="delete-btn" onclick="deleteProduct(${product.id})">ลบ</button>
+                <button class="delete-btn" style="right:18px;" onclick="deleteProduct(${product.id})">ลบ</button>
+                <button class="delete-btn" style="right:70px;background:linear-gradient(45deg,#00c6ff,#0072ff);" 
+                onclick='editProduct(${JSON.stringify(product)})'>แก้ไข</button>
                 <div class="product-name">${product.product_name}</div>
                 <div class="price">${parseFloat(product.price).toLocaleString()} บาท</div>
             `;
